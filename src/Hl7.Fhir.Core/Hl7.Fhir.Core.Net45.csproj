@@ -69,6 +69,7 @@
   <ItemGroup>
     <Compile Include="Introspection\EnumUtility.cs" />
     <Compile Include="Model\IValue.cs" />
+    <Compile Include="Model\MappingSpace.cs" />
     <Compile Include="Model\Time.cs" />
     <Compile Include="Properties\AssemblyVersionInfo.cs" />
     <Compile Include="DSTU1compatibility.cs" />
