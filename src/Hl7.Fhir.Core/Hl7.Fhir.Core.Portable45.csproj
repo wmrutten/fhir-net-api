@@ -553,6 +553,7 @@
     <Compile Include="Model\Initializers.cs" />
     <Compile Include="Model\Instant.cs" />
     <Compile Include="Model\IValue.cs" />
+    <Compile Include="Model\MappingSpace.cs" />
     <Compile Include="Model\Markdown.cs" />
     <Compile Include="Model\ModelInfo.cs" />
     <Compile Include="Model\Oid.cs" />
