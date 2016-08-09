@@ -107,6 +107,10 @@ namespace Hl7.Fhir.Specification.Snapshot
         /// <param name="structure">A <see cref="StructureDefinition"/> instance.</param>
         public void Generate(StructureDefinition structure)
         {
+            // [WMR 20160808] TODO: Prevent endless recursion by auto-expansion of external profiles
+            // i.e. check if the specified structure is already in the process of being expanded
+            // Thread safety...?
+
             var expanded = Expand(structure);
             structure.Snapshot = new StructureDefinition.SnapshotComponent() { Element = expanded };
         }
@@ -120,6 +124,11 @@ namespace Hl7.Fhir.Specification.Snapshot
         public List<ElementDefinition> Expand(StructureDefinition structure)
         {
             if (structure == null) throw Error.ArgumentNull("structure");
+
+            // [WMR 20160809] TODO: Detect recursion
+            // Use USERDATA to set a flag, clear afterwards
+            // If specified structure has flag set, then throw recursion error
+            // Important: remove USERDATA in case of exception...!
 
             var differential = structure.Differential;
             if (differential == null)

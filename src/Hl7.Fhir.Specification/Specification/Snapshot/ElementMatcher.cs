@@ -239,7 +239,7 @@ namespace Hl7.Fhir.Specification.Snapshot
                 else
                 {
                     Bookmark matchingSlice;
-                    if (FindBaseSlice(snapNav, diffNav, out matchingSlice))
+                    if (findBaseSlice(snapNav, diffNav, out matchingSlice))
                     {
                         result.Add(new MatchInfo()
                         {
@@ -271,7 +271,7 @@ namespace Hl7.Fhir.Specification.Snapshot
         // Returns true when match is found, matchingSlice points to match in base (merge here)
         // Returns false otherwise, matchingSlice points to current node in base
         // Maintain snapNav current position
-        private static bool FindBaseSlice(ElementNavigator snapNav, ElementNavigator diffNav, out Bookmark matchingSlice)
+        private static bool findBaseSlice(ElementNavigator snapNav, ElementNavigator diffNav, out Bookmark matchingSlice)
         {
             var slicing = snapNav.Current.Slicing;
             Debug.Assert(slicing != null);
@@ -317,6 +317,8 @@ namespace Hl7.Fhir.Specification.Snapshot
 
             }
             // TODO: Support other discriminators
+            // http://hl7.org/fhir/profiling.html#discriminator
+
             else
             {
                 throw Error.NotSupported("Cannot expand snapshot. Reslicing on discriminator '{0}' is not supported yet (path = '{1}').", string.Join("|", slicing.Discriminator), snapNav.Path);
