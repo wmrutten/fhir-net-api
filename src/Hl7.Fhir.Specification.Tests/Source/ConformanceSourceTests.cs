@@ -316,7 +316,10 @@ namespace Hl7.Fhir.Specification.Tests
                     IncludeSubDirectories = false
                 });
 
-            Assert.IsNotNull(jsonSource.LoadArtifactByName("profiles-types.json"));
+            using (var stream = jsonSource.LoadArtifactByName("profiles-types.json"))
+            {
+                Assert.IsNotNull(stream);
+            }
 
             // var xmlSource = new DirectorySource(Path.Combine(DirectorySource.SpecificationDirectory, "TestData", "snapshot-test"), includeSubdirectories: false)
             var xmlSource = new DirectorySource(
@@ -328,7 +331,10 @@ namespace Hl7.Fhir.Specification.Tests
                     IncludeSubDirectories = false
                 });
 
-            Assert.IsNotNull(xmlSource.LoadArtifactByName("profiles-types.xml"));
+            using (var stream = xmlSource.LoadArtifactByName("profiles-types.xml"))
+            {
+                Assert.IsNotNull(stream);
+            }
 
             // var xmlSourceLarge = new DirectorySource(Path.Combine(DirectorySource.SpecificationDirectory, "TestData", "snapshot-test"), includeSubdirectories: true)
             var xmlSourceLarge = new DirectorySource(
@@ -339,7 +345,10 @@ namespace Hl7.Fhir.Specification.Tests
                     IncludeSubDirectories = true
                 });
 
-            Assert.IsNotNull(xmlSourceLarge.LoadArtifactByName("profiles-types.xml"));
+            using (var stream = xmlSourceLarge.LoadArtifactByName("profiles-types.xml"))
+            {
+                Assert.IsNotNull(stream);
+            }
 
             (var duration, var count) = runTest(jsonSource);
             Debug.WriteLine($"jsonSource: {count} resources, duration {duration} ms");
