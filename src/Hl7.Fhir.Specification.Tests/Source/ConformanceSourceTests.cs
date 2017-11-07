@@ -116,7 +116,7 @@ namespace Hl7.Fhir.Specification.Tests
         [TestMethod]
         public void GetSomeArtifactsById()
         {
-            var fa = ZipSource.CreateValidationSource();
+            var fa = source;
 
             var vs = fa.ResolveByUri("http://hl7.org/fhir/ValueSet/v2-0292");
             Assert.IsNotNull(vs);
