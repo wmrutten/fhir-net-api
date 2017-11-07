@@ -424,7 +424,7 @@ namespace Hl7.Fhir.Specification.Source
             }
         }
 
-#region IArtifactSource
+        #region IArtifactSource
 
         /// <summary>Returns a list of artifact filenames.</summary>
         public IEnumerable<string> ListArtifactNames() => GetFilePaths().Select(path => Path.GetFileName(path));
@@ -437,9 +437,9 @@ namespace Hl7.Fhir.Specification.Source
             return fullFileName == null ? null : File.OpenRead(fullFileName);
         }
 
-#endregion
+        #endregion
 
-#region IConformanceSource
+        #region IConformanceSource
 
         /// <summary>Returns a list of summary information for all FHIR artifacts in the specified content directory.</summary>
         public IEnumerable<ArtifactSummary> Summaries
@@ -481,9 +481,9 @@ namespace Hl7.Fhir.Specification.Source
         }
 
 
-#endregion
+        #endregion
 
-#region IResourceResolver
+        #region IResourceResolver
 
         /// <summary>Resolve the resource with the specified uri.</summary>
         public Resource ResolveByUri(string uri)
@@ -501,9 +501,9 @@ namespace Hl7.Fhir.Specification.Source
             return summary != null ? getResourceFromScannedSource<Resource>(summary) : null;
         }
 
-#endregion
+        #endregion
 
-#region Private members
+        #region Private members
 
         // IMPORTANT!
         // prepareFiles & prepareSummaries callers MUST lock on _syncLock
@@ -823,7 +823,7 @@ namespace Hl7.Fhir.Specification.Source
             return null;
         }
 
-#endregion
+        #endregion
 
         // <summary>Provides synchronized access to the list of file paths. May enter lock to re-generate the list on demand.</summary>
 
