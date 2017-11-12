@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using Hl7.Fhir.Utility;
 using Hl7.Fhir.ElementModel;
+using System.Xml.Linq;
 
 namespace Hl7.Fhir.Serialization
 {
@@ -20,10 +21,11 @@ namespace Hl7.Fhir.Serialization
     /// with the POCO-parsers.
     /// </summary>
 #pragma warning disable 612, 618
-    internal class ElementNavFhirReader : IFhirReader
+    internal struct ElementNavFhirReader : IFhirReader, IElementNavigator
 #pragma warning restore 612,618
     {
         private IElementNavigator _current;
+
         public bool DisallowXsiAttributesOnRoot { get; set; }
 
         public ElementNavFhirReader(IElementNavigator root, bool disallowXsiAttributesOnRoot = false)
@@ -32,33 +34,110 @@ namespace Hl7.Fhir.Serialization
             _current = root;
         }
 
-        public object GetPrimitiveValue()
-        {
-            return _current.Value;
-        }
+        public object GetPrimitiveValue() => Value;
 
         public string GetResourceTypeName()
         {
-            if (_current.Type != null) return _current.Type;
+            if (Type != null) return Type;
 
-            throw Error.Format("Cannot determine type of resource to create from json input data.", this);
+            // No type name on this element....give the users some details about why?
+            var xmlDetails = getXmlDetails(_current);
+            if (xmlDetails != null)
+            {
+                throw Error.Format($"Cannot derive type name from element with name '{xmlDetails.Name.LocalName}' and namespace '{xmlDetails.Name.NamespaceName}'", this);
+            }
+            else
+            {
+                throw Error.Format("Cannot determine type of resource to create from json input data. " +
+                                    $"Is there a '{JsonSerializationDetails.RESOURCETYPE_MEMBER_NAME}' member present? ", this);
+            }
+
         }
 
+
+        private static XmlSerializationDetails getXmlDetails(IElementNavigator nav)
+        {
+            if (nav is IAnnotated ia)
+                return ia.Annotation<XmlSerializationDetails>();
+            else
+                return null;
+        }
+
+        private static JsonSerializationDetails getJsonDetails(IElementNavigator nav)
+        {
+            if (nav is IAnnotated ia)
+                return ia.Annotation<JsonSerializationDetails>();
+            else
+                return null;
+        }
 
 #pragma warning disable 612, 618
         public IEnumerable<Tuple<string, IFhirReader>> GetMembers()
         {
-            if (_current.Value != null)
+            if (Value != null)
                 yield return Tuple.Create("value", (IFhirReader)new ElementNavFhirReader(_current));
 
-            var children = _current.Children();
             foreach (var child in _current.Children())
-                yield return Tuple.Create(child.Name, (IFhirReader)new ElementNavFhirReader(child));
+            {
+                bool mustSkip = verifyXmlSpecificDetails(child);
+
+                if(!mustSkip)
+                    yield return Tuple.Create(child.Name, (IFhirReader)new ElementNavFhirReader(child));
+            }
         }
 #pragma warning restore 612, 618
 
-        public int LineNumber => -1;
+        /// <summary>
+        /// Verify xml specific details.
+        /// </summary>
+        /// <param name="child"></param>
+        /// <returns>'true' if the child is ok, but needs to be skipped, 'false' if it is ok and needs to be processed, throws otherwise</returns>
+        private bool verifyXmlSpecificDetails(IElementNavigator child)
+        {
+            var xmlDetails = getXmlDetails(child);
+            if (xmlDetails == null) return false;
 
-        public int LinePosition => -1;
+            if (xmlDetails.NodeType == System.Xml.XmlNodeType.Attribute)
+            {
+                if (xmlDetails.IsNamespaceDeclaration) return true;      // skip xmlns declarations
+                if (xmlDetails.Name == XName.Get("{http://www.w3.org/2000/xmlns/}xsi") && !DisallowXsiAttributesOnRoot) return true; // skip xmlns:xsi declaration
+                if (xmlDetails.Name == XName.Get("{http://www.w3.org/2001/XMLSchema-instance}schemaLocation") && !DisallowXsiAttributesOnRoot) return true;     // skip schemaLocation
+
+                if (xmlDetails.Name.NamespaceName == "") return false;
+
+                throw Error.Format($"Encountered unsupported attribute {xmlDetails.Name}", this);
+            }
+
+            else if (xmlDetails.NodeType == System.Xml.XmlNodeType.Element)
+            {
+                if (xmlDetails.Name.NamespaceName == XmlNs.FHIR) return false;
+                if (xmlDetails.Name == XmlNs.XHTMLDIV) return false;
+
+                throw Error.Format($"Encountered element '{xmlDetails.Name.LocalName}' from unsupported namespace '{xmlDetails.Name.NamespaceName}'", this);
+            }
+
+            else
+                throw Error.Format($"Xml node of type '{xmlDetails.NodeType}' is unexpected at this point", this);
+        }
+
+        #region IElementNavigator members
+        public bool MoveToNext(string nameFilter = null) => _current.MoveToNext(nameFilter);
+
+        public bool MoveToFirstChild(string nameFilter = null) => _current.MoveToFirstChild(nameFilter);
+
+        public IElementNavigator Clone() => new ElementNavFhirReader(_current.Clone(), DisallowXsiAttributesOnRoot);
+
+        public int LineNumber => (_current as IPositionInfo)?.LineNumber ?? -1;
+
+        public int LinePosition => (_current as IPositionInfo)?.LinePosition ?? -1;
+
+        public string Name => _current.Name;
+
+        public string Type => _current.Type;
+
+        public object Value => _current.Value;
+
+        public string Location => _current.Location;
+        #endregion
     }
 }

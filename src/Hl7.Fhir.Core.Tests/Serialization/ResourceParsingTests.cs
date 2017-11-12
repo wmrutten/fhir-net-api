@@ -40,6 +40,70 @@ namespace Hl7.Fhir.Tests.Serialization
 
 
         [TestMethod]
+        public void ReturnsLineNumbersXml()
+        {
+            var xml = "<Patient xmlns='http://hl7.org/fhir'><iDontExist value='piet' /></Patient>";
+            var parser = new FhirXmlParser();
+
+            try
+            {
+                parser.Parse<Resource>(xml);
+                Assert.Fail("Should have thrown");
+            }
+            catch(FormatException fe)
+            {
+                Assert.IsFalse(fe.Message.Contains("pos -1"));
+            }            
+        }
+
+        [TestMethod]
+        public void ReturnsLineNumbersJson()
+        {
+            var xml = "<Patient xmlns='http://hl7.org/fhir'><iDontExist value='piet' /></Patient>";
+            var parser = new FhirXmlParser();
+
+            try
+            {
+                parser.Parse<Resource>(xml);
+                Assert.Fail("Should have thrown");
+            }
+            catch (FormatException fe)
+            {
+                Assert.IsFalse(fe.Message.Contains("pos -1"));
+            }            
+        }
+
+
+        [TestMethod]
+        public void RequiresHl7Namespace()
+        {
+            var xml = "<Patient><active value='false' /></Patient>";
+            var parser = new FhirXmlParser();
+
+            try
+            {
+                parser.Parse<Resource>(xml);
+                Assert.Fail("Should have thrown on Patient without namespace");
+            }
+            catch (FormatException fe)
+            {
+                Assert.IsTrue(fe.Message.Contains("Cannot derive type"));
+            }
+
+            xml = "<Patient xmlns='http://hl7.org/fhir'><f:active value='false' xmlns:f='http://somehwere.else.nl' /></Patient>";
+            
+            try
+            {
+                parser.Parse<Resource>(xml);
+                Assert.Fail("Should have thrown on Patient.active with incorrect namespace");
+            }
+            catch (FormatException fe)
+            {
+                Assert.IsTrue(fe.Message.Contains("unsupported namespace"));
+            }
+        }
+
+        [TestMethod]
         public void AcceptXsiStuffOnRoot()
         {
             var xml = "<Patient xmlns='http://hl7.org/fhir' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' " +
@@ -83,12 +147,14 @@ namespace Hl7.Fhir.Tests.Serialization
 
             Assert.IsTrue(basic.GetStringExtension("http://blabla.nl").Contains("\n"));
 
-            var outp = FhirSerializer.SerializeResourceToXml(basic);
+            var outp = FhirXmlSerializer.SerializeToString(basic);
             Assert.IsTrue(outp.Contains("&#xA;"));
         }
 
         internal FhirXmlParser FhirXmlParser = new FhirXmlParser();
         internal FhirJsonParser FhirJsonParser = new FhirJsonParser();
+        internal FhirXmlSerializer FhirXmlSerializer = new FhirXmlSerializer();
+        internal FhirJsonSerializer FhirJsonSerializer = new FhirJsonSerializer();
 
         [TestMethod]
         public void ParsePerfJson()
@@ -179,13 +245,13 @@ namespace Hl7.Fhir.Tests.Serialization
 
             var poco = FhirJsonParser.Parse<Resource>(json);
             Assert.IsNotNull(poco);
-            var xml = FhirSerializer.SerializeResourceToXml(poco);
+            var xml = FhirXmlSerializer.SerializeToString(poco);
             Assert.IsNotNull(xml);
             File.WriteAllText(Path.Combine(tempPath, "edgecase.xml"), xml);
 
             poco = FhirXmlParser.Parse<Resource>(xml);
             Assert.IsNotNull(poco);
-            var json2 = FhirSerializer.SerializeResourceToJson(poco);
+            var json2 = FhirJsonSerializer.SerializeToString(poco);
             Assert.IsNotNull(json2);
             File.WriteAllText(Path.Combine(tempPath, "edgecase.json"), json2);
 
@@ -202,12 +268,12 @@ namespace Hl7.Fhir.Tests.Serialization
             o.Contained.Add(p);
             o.ResourceBase = new Uri("http://nu.nl/fhir");
 
-            var xml = FhirSerializer.SerializeResourceToXml(o);
+            var xml = FhirXmlSerializer.SerializeToString(o);
             Assert.IsTrue(xml.Contains("value=\"#jaap\""));
 
             var o2 = FhirXmlParser.Parse<Observation>(xml);
             o2.ResourceBase = new Uri("http://nu.nl/fhir");
-            xml = FhirSerializer.SerializeResourceToXml(o2);
+            xml = FhirXmlSerializer.SerializeToString(o2);
             Assert.IsTrue(xml.Contains("value=\"#jaap\""));
         }
 
@@ -217,31 +283,10 @@ namespace Hl7.Fhir.Tests.Serialization
             var p = new Patient();
             p.Text = new Narrative() { Div = "<div xmlns=\"http://www.w3.org/1999/xhtml\">Nasty, a text with both \"double\" quotes and 'single' quotes</div>" };
 
-            var xml = FhirSerializer.SerializeResourceToXml(p);
+            var xml = FhirXmlSerializer.SerializeToString(p);
             Assert.IsNotNull(FhirXmlParser.Parse<Resource>(xml));
-            var json = FhirSerializer.SerializeResourceToJson(p);
+            var json = FhirJsonSerializer.SerializeToString(p);
             Assert.IsNotNull(FhirJsonParser.Parse<Resource>(json));
-        }
-
-        // TODO: Unfortunately, this is currently too much work to validate. See comments on the bottom of
-        // https://github.com/ewoutkramer/fhir-net-api/issues/20
-        [TestMethod]
-        public void CatchArrayWithNull()
-        {
-            var json = @"{
-                'resourceType': 'Patient',
-                'identifier': [null]
-                }";
-
-            try
-            {
-                var prof = FhirJsonParser.Parse<Resource>(json);
-                Assert.Fail("Should have failed parsing");
-            }
-            catch (FormatException ex)
-            {
-                Assert.IsTrue(ex.Message.Contains("both be null"));
-            }
         }
     }
 }

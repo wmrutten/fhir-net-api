@@ -77,6 +77,7 @@ namespace Hl7.Fhir.Specification.Source
         /// from the specified content directory and using the default <see cref="DirectorySourceSettings"/>.
         /// </summary>
         /// <param name="contentDirectory">The file path of the target directory.</param>
+        /// <exception cref="ArgumentNullException">The specified argument is <c>null</c>.</exception>
         public DirectorySource(string contentDirectory)
         {
             _contentDirectory = contentDirectory ?? throw Error.ArgumentNull(nameof(contentDirectory));
@@ -89,6 +90,7 @@ namespace Hl7.Fhir.Specification.Source
         /// </summary>
         /// <param name="contentDirectory">The file path of the target directory.</param>
         /// <param name="settings">Configuration settings that control the behavior of the <see cref="DirectorySource"/>.</param>
+        /// <exception cref="ArgumentNullException">One of the specified arguments is <c>null</c>.</exception>
         public DirectorySource(string contentDirectory, DirectorySourceSettings settings)
         {
             _contentDirectory = contentDirectory ?? throw Error.ArgumentNull(nameof(contentDirectory));
@@ -444,16 +446,14 @@ namespace Hl7.Fhir.Specification.Source
         #region IConformanceSource
 
         /// <summary>Returns a list of summary information for all FHIR artifacts in the specified content directory.</summary>
-        public IEnumerable<ArtifactSummary> Summaries
+        public IEnumerable<ArtifactSummary> ListSummaries() 
             => GetSummaries().Select(s => s); // Prevent caller from modifying internal list
 
         /// <summary>List all resource uris, optionally filtered by type.</summary>
         /// <param name="filter">A <see cref="ResourceType"/> enum value.</param>
         /// <returns>A <see cref="IEnumerable{T}"/> sequence of uri strings.</returns>
         public IEnumerable<string> ListResourceUris(ResourceType? filter = null)
-        {
-            return Summaries.OfResourceType(filter).Select(dsi => dsi.ResourceUri);
-        }
+            => ListSummaries().OfResourceType(filter).Select(dsi => dsi.ResourceUri);
 
         /// <summary>Resolve the <see cref="ValueSet"/> resource with the specified codeSystem system.</summary>
         public ValueSet FindValueSetBySystem(string system)
@@ -801,6 +801,7 @@ namespace Hl7.Fhir.Specification.Source
 
             using (var navStream = DefaultNavigatorStreamFactory.Create(path))
             {
+
                 // TODO: Handle exceptions & null return values
                 // e.g. file may have been deleted/renamed since last scan
 
@@ -822,8 +823,9 @@ namespace Hl7.Fhir.Specification.Source
                         }
                     }
                 }
+
+                return null;
             }
-            return null;
         }
 
         #endregion
